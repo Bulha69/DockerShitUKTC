@@ -1,4 +1,4 @@
-# ⚡ Метална База Данни — Docker Compose Project
+# Метална База Данни — Docker Compose Project
 
 Каталог за **Thrash** и **Death Metal** албуми, изграден с Flask API + Nginx фронтенд, контейнеризиран с Docker Compose.
 
@@ -25,7 +25,7 @@ metal-db/
 
 ## Компоненти
 
-### 🔴 Backend (Flask API)
+### Backend (Flask API)
 - **Образ:** `python:3.12-alpine`
 - **Порт:** `5000` (вътрешен)
 - **Технологии:** Flask, Gunicorn, SQLite
@@ -38,7 +38,7 @@ metal-db/
 - Базата данни се съхранява в Docker **volume** (`db_data:/data/albums.db`)
 - При първо стартиране се зарежда с 20 класически албума
 
-### 🌐 Frontend (Nginx)
+### Frontend (Nginx)
 - **Образ:** `nginx:alpine`
 - **Порт:** `8080` (публичен)
 - **Технологии:** HTML, CSS, Vanilla JS
