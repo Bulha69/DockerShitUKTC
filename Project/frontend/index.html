@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МЕТАЛНА БАЗА ДАННИ</title>
+<link href="https://fonts.googleapis.com/css2?family=Metal+Mania&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blood: #8b0000;
+    --fire: #cc3300;
+    --ember: #ff6600;
+    --bone: #c8b89a;
+    --ash: #888;
+    --void: #0a0a0a;
+    --dark: #111;
+    --panel: #161616;
+    --border: #2a2a2a;
+    --thrash: #e8a000;
+    --death: #cc2200;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--void);
+    color: var(--bone);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  header {
+    text-align: center;
+    padding: 40px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blood), transparent);
+  }
+
+  h1 {
+    font-family: 'Metal Mania', cursive;
+    font-size: clamp(28px, 6vw, 64px);
+    color: var(--fire);
+    text-shadow: 0 0 30px rgba(204,51,0,0.5), 0 0 60px rgba(139,0,0,0.3);
+    letter-spacing: 4px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    color: var(--ash);
+    font-size: 11px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+  }
+
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    padding: 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Metal Mania', cursive;
+    font-size: 28px;
+    color: var(--ember);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--ash);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: var(--dark);
+  }
+
+  .filter-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ash);
+    padding: 6px 18px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover, .filter-btn.active {
+    border-color: var(--fire);
+    color: var(--ember);
+    background: rgba(204,51,0,0.08);
+  }
+
+  .filter-btn.thrash.active { border-color: var(--thrash); color: var(--thrash); background: rgba(232,160,0,0.08); }
+  .filter-btn.death.active  { border-color: var(--death);  color: var(--death);  background: rgba(204,34,0,0.08); }
+
+  .add-btn {
+    margin-left: auto;
+    background: var(--blood);
+    border: 1px solid var(--fire);
+    color: var(--bone);
+    padding: 6px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .add-btn:hover { background: var(--fire); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    padding: 1px;
+  }
+
+  .card {
+    background: var(--dark);
+    padding: 20px;
+    position: relative;
+    transition: background 0.2s;
+    cursor: default;
+  }
+
+  .card:hover { background: #181818; }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+
+  .card.thrash::before { background: var(--thrash); }
+  .card.death::before  { background: var(--death); }
+
+  .card-genre {
+    font-size: 9px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .card.thrash .card-genre { color: var(--thrash); }
+  .card.death  .card-genre { color: var(--death); }
+
+  .card-title {
+    font-family: 'Metal Mania', cursive;
+    font-size: 20px;
+    color: var(--bone);
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .card-artist {
+    color: var(--ash);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .card-year { color: var(--ash); font-size: 11px; }
+  .card-label { color: #555; font-size: 10px; letter-spacing: 1px; }
+
+  .rating {
+    display: flex;
+    gap: 2px;
+  }
+
+  .rating span {
+    color: var(--ember);
+    font-size: 10px;
+  }
+
+  .rating .empty { color: #333; }
+
+  .delete-btn {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: transparent;
+    border: none;
+    color: #333;
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.2s;
+    padding: 2px 6px;
+  }
+
+  .delete-btn:hover { color: var(--blood); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--blood);
+    padding: 30px;
+    width: 90%;
+    max-width: 440px;
+  }
+
+  .modal h2 {
+    font-family: 'Metal Mania', cursive;
+    color: var(--fire);
+    font-size: 22px;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+
+  .form-group { margin-bottom: 14px; }
+
+  .form-group label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--ash);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    background: var(--dark);
+    border: 1px solid var(--border);
+    color: var(--bone);
+    padding: 8px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus { border-color: var(--fire); }
+
+  .form-group select option { background: var(--dark); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .modal-actions button {
+    flex: 1;
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+
+  .btn-submit {
+    background: var(--blood);
+    color: var(--bone);
+    border-color: var(--fire) !important;
+  }
+
+  .btn-submit:hover { background: var(--fire); }
+
+  .btn-cancel {
+    background: transparent;
+    color: var(--ash);
+  }
+
+  .btn-cancel:hover { border-color: var(--ash); color: var(--bone); }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--ash);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--ash);
+    font-size: 11px;
+    letter-spacing: 4px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--panel);
+    border: 1px solid var(--fire);
+    color: var(--bone);
+    padding: 12px 20px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    z-index: 200;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ МЕТАЛНА БАЗА ДАННИ ⚡</h1>
+  <div class="subtitle">Thrash &amp; Death Metal · Каталог на албуми</div>
+</header>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat"><div class="stat-num" id="statTotal">–</div><div class="stat-label">Общо</div></div>
+  <div class="stat"><div class="stat-num" id="statThrash">–</div><div class="stat-label">Thrash</div></div>
+  <div class="stat"><div class="stat-num" id="statDeath">–</div><div class="stat-label">Death</div></div>
+</div>
+
+<div class="controls">
+  <button class="filter-btn active" onclick="setFilter('all', this)">Всички</button>
+  <button class="filter-btn thrash" onclick="setFilter('thrash', this)">Thrash</button>
+  <button class="filter-btn death" onclick="setFilter('death', this)">Death</button>
+  <button class="add-btn" onclick="openModal()">+ Добави Албум</button>
+</div>
+
+<div id="albumGrid" class="grid">
+  <div class="loading">ЗАРЕЖДА СЕ...</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>Нов Албум</h2>
+    <div class="form-group">
+      <label>Заглавие *</label>
+      <input type="text" id="fTitle" placeholder="Altar of Slaughter">
+    </div>
+    <div class="form-group">
+      <label>Изпълнител *</label>
+      <input type="text" id="fArtist" placeholder="Death Crusher">
+    </div>
+    <div class="form-group">
+      <label>Година *</label>
+      <input type="number" id="fYear" placeholder="1987" min="1980" max="2030">
+    </div>
+    <div class="form-group">
+      <label>Жанр *</label>
+      <select id="fGenre">
+        <option value="thrash">Thrash Metal</option>
+        <option value="death">Death Metal</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Лейбъл</label>
+      <input type="text" id="fLabel" placeholder="Earache Records">
+    </div>
+    <div class="form-group">
+      <label>Рейтинг (1–10)</label>
+      <input type="number" id="fRating" placeholder="10" min="1" max="10">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Отказ</button>
+      <button class="btn-submit" onclick="submitAlbum()">Запази</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : '/api';
+
+  let currentFilter = 'all';
+  let allAlbums = [];
+
+  async function fetchStats() {
+    try {
+      const r = await fetch(`${API}/stats`);
+      const d = await r.json();
+      document.getElementById('statTotal').textContent = d.total;
+      document.getElementById('statThrash').textContent = d.thrash;
+      document.getElementById('statDeath').textContent = d.death;
+    } catch {}
+  }
+
+  async function fetchAlbums() {
+    document.getElementById('albumGrid').innerHTML = '<div class="loading">ЗАРЕЖДА СЕ...</div>';
+    try {
+      const url = currentFilter === 'all' ? `${API}/albums` : `${API}/albums?genre=${currentFilter}`;
+      const r = await fetch(url);
+      allAlbums = await r.json();
+      renderAlbums();
+    } catch (e) {
+      document.getElementById('albumGrid').innerHTML = '<div class="empty-state">Грешка при свързване с API</div>';
+    }
+  }
+
+  function renderAlbums() {
+    const grid = document.getElementById('albumGrid');
+    if (!allAlbums.length) {
+      grid.innerHTML = '<div class="empty-state">Няма намерени албуми</div>';
+      return;
+    }
+    grid.innerHTML = allAlbums.map(a => `
+      <div class="card ${a.genre}">
+        <button class="delete-btn" onclick="deleteAlbum(${a.id}, event)">✕</button>
+        <div class="card-genre">${a.genre} metal</div>
+        <div class="card-title">${a.title}</div>
+        <div class="card-artist">${a.artist}</div>
+        <div class="card-meta">
+          <div>
+            <div class="card-year">${a.year}</div>
+            <div class="card-label">${a.label || ''}</div>
+          </div>
+          <div class="rating">${renderRating(a.rating)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderRating(r) {
+    return Array.from({length: 10}, (_, i) =>
+      `<span class="${i < r ? '' : 'empty'}">◆</span>`
+    ).join('');
+  }
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    fetchAlbums();
+  }
+
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    ['fTitle','fArtist','fYear','fLabel','fRating'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  async function submitAlbum() {
+    const title = document.getElementById('fTitle').value.trim();
+    const artist = document.getElementById('fArtist').value.trim();
+    const year = parseInt(document.getElementById('fYear').value);
+    const genre = document.getElementById('fGenre').value;
+    const label = document.getElementById('fLabel').value.trim();
+    const rating = parseInt(document.getElementById('fRating').value) || 0;
+
+    if (!title || !artist || !year) { showToast('Попълни задължителните полета!'); return; }
+
+    try {
+      await fetch(`${API}/albums`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title, artist, year, genre, label, rating})
+      });
+      closeModal();
+      showToast('Албумът е добавен!');
+      fetchAlbums();
+      fetchStats();
+    } catch { showToast('Грешка при добавяне'); }
+  }
+
+  async function deleteAlbum(id, e) {
+    e.stopPropagation();
+    if (!confirm('Изтриване на албума?')) return;
+    await fetch(`${API}/albums/${id}`, {method: 'DELETE'});
+    showToast('Изтрит');
+    fetchAlbums();
+    fetchStats();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  fetchStats();
+  fetchAlbums();
+</script>
+</body>
+</html>

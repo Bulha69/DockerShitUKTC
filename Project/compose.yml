@@ -1,0 +1,42 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: metal-db-backend:latest
+    container_name: metal-db-backend
+    environment:
+      - DB_PATH=/data/albums.db
+    volumes:
+      - db_data:/data
+    networks:
+      - metal-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: metal-db-frontend:latest
+    container_name: metal-db-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - metal-net
+    restart: unless-stopped
+
+volumes:
+  db_data:
+
+networks:
+  metal-net:
+    driver: bridge
